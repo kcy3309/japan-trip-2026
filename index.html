@@ -42,6 +42,7 @@
     <div class="form-group">
         <label>支出人</label>
         <select id="payer">
+            <option value="" disabled selected>-- 請選擇 --</option>
             <option value="Ying">Ying</option>
             <option value="Kai">Kai</option>
         </select>
@@ -98,8 +99,10 @@
         const payer = document.getElementById('payer').value;
         const date = document.getElementById('date').value;
 
-        if (!item || isNaN(amount)) return alert("請輸入完整項目與金額");
-
+        if (!item || isNaN(amount) || !payer) {
+        alert("請輸入完整的項目、金額並選擇支出人");
+        return;
+}
         document.getElementById('addBtn').innerText = "同步中...";
         document.getElementById('addBtn').disabled = true;
 
