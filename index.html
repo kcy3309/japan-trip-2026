@@ -56,7 +56,8 @@
     <table>
         <thead>
             <tr>
-                <th>項目</th>
+		<th>日期</th>                
+		<th>項目</th>
                 <th>支出人</th>
                 <th>金額</th>
                 <th>刪</th>
@@ -122,11 +123,15 @@
         });
     }
 
-    function updateTable() {
+  function updateTable() {
         const tbody = document.getElementById("expenseBody");
         tbody.innerHTML = "";
         expenses.forEach((ex, i) => {
+            // 格式化日期，只取 YYYY-MM-DD 部分
+            const displayDate = ex.date ? ex.date.substring(0, 10) : "";
+            
             tbody.innerHTML += `<tr>
+                <td>${displayDate}</td>
                 <td>${ex.item}</td>
                 <td>${ex.payer}</td>
                 <td>¥${parseFloat(ex.amount).toLocaleString()}</td>
