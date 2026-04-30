@@ -38,6 +38,7 @@
 <div class="container">
     <h2>🇯🇵 Ying & Kai 日本之旅</h2>
     
+    <!-- 預算進度條 -->
     <div class="summary-box" style="margin-top:0; margin-bottom:20px;">
         <label>旅程總預算 (JPY)</label>
         <input type="number" id="totalBudget" value="500000" onchange="updateBudgetBar()" style="padding:5px; height:30px; margin-bottom:5px;">
@@ -53,10 +54,12 @@
     <button class="btn-refresh" onclick="fetchFromCloud()">🔄 從雲端同步資料</button>
     <div id="status" class="loading"></div>
 
+    <!-- 輸入區域 -->
     <div class="form-group">
         <label>項目</label>
         <input type="text" id="item" placeholder="例如: 燒肉、加油">
     </div>
+
     <div class="form-group" style="display: flex; gap: 10px;">
         <div style="flex: 2;">
             <label>金額 (JPY)</label>
@@ -65,21 +68,26 @@
         <div style="flex: 1;">
             <label>支出人</label>
             <select id="payer">
+                <option value="" disabled selected>-- 請選擇 --</option>
                 <option value="Ying">Ying</option>
                 <option value="Kai">Kai</option>
             </select>
         </div>
     </div>
+
     <div class="form-group">
         <label>日期</label>
         <input type="date" id="date">
     </div>
+    
     <button class="btn-add" id="addBtn" onclick="addExpense()">➕ 加入並同步</button>
 
+    <!-- 分類圖表 -->
     <div class="chart-container">
         <canvas id="expenseChart"></canvas>
     </div>
 
+    <!-- 支出清單 -->
     <table>
         <thead>
             <tr>
@@ -92,13 +100,13 @@
         <tbody id="expenseBody"></tbody>
     </table>
 
+    <!-- 結算區域 -->
     <div class="summary-box">
         <label>匯率設定 (1 JPY = ? HKD)</label>
         <input type="number" id="rate" value="0.052" step="0.0001" style="width: 100px; padding: 5px; margin-bottom:10px;">
         
         <button style="background:#34495e; color:white;" onclick="calculateSummary()">💰 旅程結算</button>
         
-        <!-- 補回：試算表捷徑按鈕 -->
         <button style="background:#7f8c8d; color:white; margin-top: 15px; font-size: 14px;" 
                 onclick="window.open('https://docs.google.com/spreadsheets/d/1GFoYmkElFjOWEGneIwG-E5f9kYWpkWdd1cNAZv69WlI/edit?usp=sharing', '_blank')">
             ✏️ 日本之旅共同支出紀錄 (直接修改)
@@ -142,8 +150,14 @@
         const payer = document.getElementById('payer').value;
         const date = document.getElementById('date').value;
 
-        if (!item || isNaN(amount)) return alert("請填寫正確資料");
+        if (!item || isNaN(amount) || !payer) {
+            alert("請填寫完整的項目、金額並選擇支出人");
+            return;
+        }
+
         document.getElementById('addBtn').disabled = true;
+        document.getElementById('addBtn').innerText = "同步中...";
+        
         const payload = { item, amount, payer, date };
 
         fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
@@ -152,7 +166,9 @@
             updateUI();
             document.getElementById('item').value = '';
             document.getElementById('amount').value = '';
+            document.getElementById('payer').selectedIndex = 0; 
             document.getElementById('addBtn').disabled = false;
+            document.getElementById('addBtn').innerText = "➕ 加入並同步";
         });
     }
 
@@ -215,7 +231,6 @@
         }
     }
 
-    // 修正：重新加入填色提示與匯率計算邏輯
     function calculateSummary() {
         if (expenses.length === 0) return alert("目前沒有支出資料");
         const rate = parseFloat(document.getElementById('rate').value) || 0.052;
