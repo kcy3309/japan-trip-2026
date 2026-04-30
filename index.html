@@ -3,137 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本之旅共同支出</title>
+    <title>Ying & Kai 日本之旅記帳 PRO</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; text-align: center; }
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #d35400; text-align: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #27ae60; color: white; border: none; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #219150; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #ecf0f1; }
-        .summary { margin-top: 20px; padding: 15px; background-color: #e8f4fd; border-radius: 4px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-add { background-color: #e67e22; color: white; }
+        .btn-refresh { background-color: #3498db; color: white; margin-bottom: 10px; }
+        
+        .budget-container { background: #eee; border-radius: 10px; height: 20px; width: 100%; margin: 10px 0; overflow: hidden; }
+        .budget-bar { background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c); height: 100%; width: 0%; transition: width 0.5s; }
+        .budget-text { font-size: 13px; color: #666; display: flex; justify-content: space-between; }
+
+        .chart-container { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background-color: #fdf2e9; color: #d35400; }
+        .summary-box { margin-top: 25px; padding: 15px; background: #fff9f4; border: 1px solid #ffe5d0; border-radius: 10px; }
+        .result-card { margin-bottom: 12px; padding: 15px; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .dual-currency { color: #666; font-size: 0.85em; margin-left: 5px; }
+        .receive { color: #27ae60; font-weight: bold; }
+        .pay { color: #e74c3c; font-weight: bold; }
+        .loading { text-align: center; color: #7f8c8d; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🇯🇵 旅費共同記錄</h2>
+    <h2>🇯🇵 Ying & Kai 日本之旅</h2>
     
-    <div class="form-group">
-        <label>支出項目 (例如: 燒肉、新幹線)</label>
-        <input type="text" id="item" placeholder="請輸入項目">
+    <div class="summary-box" style="margin-top:0; margin-bottom:20px;">
+        <label>旅程總預算 (JPY)</label>
+        <input type="number" id="totalBudget" value="500000" onchange="updateBudgetBar()" style="padding:5px; height:30px; margin-bottom:5px;">
+        <div class="budget-container">
+            <div id="budgetBar" class="budget-bar"></div>
+        </div>
+        <div class="budget-text">
+            <span id="spentText">已花: ¥0</span>
+            <span id="percentText">0%</span>
+        </div>
     </div>
+
+    <button class="btn-refresh" onclick="fetchFromCloud()">🔄 從雲端同步資料</button>
+    <div id="status" class="loading"></div>
+
     <div class="form-group">
-        <label>金額 (JPY)</label>
-        <input type="number" id="amount" placeholder="輸入金額">
+        <label>項目</label>
+        <input type="text" id="item" placeholder="例如: 燒肉、加油">
     </div>
-    <div class="form-group">
-        <label>支出人</label>
-        <input type="text" id="payer" placeholder="誰付的錢？">
+    <div class="form-group" style="display: flex; gap: 10px;">
+        <div style="flex: 2;">
+            <label>金額 (JPY)</label>
+            <input type="number" id="amount" placeholder="0">
+        </div>
+        <div style="flex: 1;">
+            <label>支出人</label>
+            <select id="payer">
+                <option value="Ying">Ying</option>
+                <option value="Kai">Kai</option>
+            </select>
+        </div>
     </div>
     <div class="form-group">
         <label>日期</label>
         <input type="date" id="date">
     </div>
-    <button onclick="addExpense()">加入支出</button>
+    <button class="btn-add" id="addBtn" onclick="addExpense()">➕ 加入並同步</button>
 
-    <hr>
+    <div class="chart-container">
+        <canvas id="expenseChart"></canvas>
+    </div>
 
-    <h3>支出清單</h3>
-    <table id="expenseTable">
+    <table>
         <thead>
             <tr>
-                <th>日期</th>
+                <th>日期</th>                
                 <th>項目</th>
-                <th>支出人</th>
                 <th>金額</th>
+                <th></th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="expenseBody"></tbody>
     </table>
 
-    <div class="summary">
-        <h3>旅程完結結算</h3>
-        <button style="background-color: #2980b9;" onclick="calculateSummary()">計算各人平均及差額</button>
-        <div id="result"></div>
+    <div class="summary-box">
+        <label>匯率設定 (1 JPY = ? HKD)</label>
+        <input type="number" id="rate" value="0.052" step="0.0001" style="width: 100px; padding: 5px; margin-bottom:10px;">
+        
+        <button style="background:#34495e; color:white;" onclick="calculateSummary()">💰 旅程結算</button>
+        
+        <!-- 補回：試算表捷徑按鈕 -->
+        <button style="background:#7f8c8d; color:white; margin-top: 15px; font-size: 14px;" 
+                onclick="window.open('https://docs.google.com/spreadsheets/d/1GFoYmkElFjOWEGneIwG-E5f9kYWpkWdd1cNAZv69WlI/edit?usp=sharing', '_blank')">
+            ✏️ 日本之旅共同支出紀錄 (直接修改)
+        </button>
+
+        <div id="result" style="margin-top:15px; line-height: 1.6;"></div>
     </div>
 </div>
 
 <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn5ZV2GXBOlTgIPm8Z0tXaSTGGL_Fop6J6T5oEAGjRgxYAmtzWvRrl9Qp1Jor--rLN/exec";
     let expenses = [];
-
-    // 設定預設日期為今天
+    let myChart = null;
     document.getElementById('date').valueAsDate = new Date();
+
+    window.onload = fetchFromCloud;
+
+    function getCategory(item) {
+        if (item.includes("油") || item.includes("車") || item.includes("ETC") || item.includes("路") || item.includes("泊") || item.includes("Gas")) return { name: "交通自駕", icon: "🚗" };
+        if (item.includes("食") || item.includes("餐") || item.includes("飲") || item.includes("麵") || item.includes("肉") || item.includes("蟹")) return { name: "飲食美饌", icon: "🍱" };
+        if (item.includes("買") || item.includes("物") || item.includes("藥妝") || item.includes("名產")) return { name: "購物消費", icon: "🛍️" };
+        if (item.includes("住") || item.includes("酒店") || item.includes("宿")) return { name: "住宿酒店", icon: "🏨" };
+        return { name: "其他雜項", icon: "💰" };
+    }
+
+    function fetchFromCloud() {
+        document.getElementById('status').innerText = "雲端同步中...";
+        fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                expenses = data;
+                updateUI();
+                document.getElementById('status').innerText = "✅ 同步完成";
+            })
+            .catch(err => { document.getElementById('status').innerText = "❌ 同步失敗"; });
+    }
 
     function addExpense() {
         const item = document.getElementById('item').value;
         const amount = parseFloat(document.getElementById('amount').value);
-        const payer = document.getElementById('payer').value.trim();
+        const payer = document.getElementById('payer').value;
         const date = document.getElementById('date').value;
 
-        if (!item || !amount || !payer) {
-            alert("請填寫所有欄位");
-            return;
-        }
+        if (!item || isNaN(amount)) return alert("請填寫正確資料");
+        document.getElementById('addBtn').disabled = true;
+        const payload = { item, amount, payer, date };
 
-        const expense = { item, amount, payer, date };
-        expenses.push(expense);
+        fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+        .then(() => {
+            expenses.push(payload);
+            updateUI();
+            document.getElementById('item').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('addBtn').disabled = false;
+        });
+    }
+
+    function updateUI() {
         updateTable();
-        
-        // 清空輸入框
-        document.getElementById('item').value = '';
-        document.getElementById('amount').value = '';
+        updateBudgetBar();
+        updateChart();
     }
 
     function updateTable() {
-        const tbody = document.querySelector("#expenseTable tbody");
+        const tbody = document.getElementById("expenseBody");
         tbody.innerHTML = "";
-        expenses.forEach(ex => {
-            const row = `<tr>
-                <td>${ex.date}</td>
-                <td>${ex.item}</td>
-                <td>${ex.payer}</td>
-                <td>${ex.amount}</td>
+        expenses.forEach((ex, i) => {
+            const cat = getCategory(ex.item);
+            const displayDate = ex.date ? ex.date.substring(5, 10) : "";
+            tbody.innerHTML += `<tr>
+                <td>${displayDate}</td>
+                <td>${cat.icon} ${ex.item}<br><small style="color:gray">${ex.payer}</small></td>
+                <td>¥${parseFloat(ex.amount).toLocaleString()}</td>
+                <td><button onclick="deleteLocal(${i})" style="padding:2px 5px; background:#ff4d4f; color:white; border-radius:4px; font-size:10px; border:none;">X</button></td>
             </tr>`;
-            tbody.innerHTML += row;
         });
     }
 
-    function calculateSummary() {
-        if (expenses.length === 0) return;
+    function updateBudgetBar() {
+        const totalBudget = parseFloat(document.getElementById('totalBudget').value) || 1;
+        const totalSpent = expenses.reduce((sum, ex) => sum + parseFloat(ex.amount), 0);
+        const percent = Math.min((totalSpent / totalBudget) * 100, 100);
+        document.getElementById('budgetBar').style.width = percent + "%";
+        document.getElementById('spentText').innerText = `已花: ¥${totalSpent.toLocaleString()}`;
+        document.getElementById('percentText').innerText = `${Math.round(percent)}%`;
+        document.getElementById('budgetBar').style.background = percent >= 100 ? "#e74c3c" : "";
+    }
 
-        let total = 0;
-        let payerTotals = {};
-        
+    function updateChart() {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const categories = {};
         expenses.forEach(ex => {
-            total += ex.amount;
-            payerTotals[ex.payer] = (payerTotals[ex.payer] || 0) + ex.amount;
+            const catName = getCategory(ex.item).name;
+            categories[catName] = (categories[catName] || 0) + parseFloat(ex.amount);
         });
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(categories),
+                datasets: [{
+                    data: Object.values(categories),
+                    backgroundColor: ['#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#576574']
+                }]
+            },
+            options: { plugins: { legend: { position: 'right' } } }
+        });
+    }
 
-        const participants = Object.keys(payerTotals);
-        const avg = total / participants.length;
-        
-        let resultHTML = `<p><strong>總支出:</strong> ${total} JPY</p>`;
-        resultHTML += `<p><strong>參與人數:</strong> ${participants.length} 人</p>`;
-        resultHTML += `<p><strong>每人平均支出:</strong> ${avg.toFixed(2)} JPY</p><hr>`;
+    function deleteLocal(index) {
+        if(confirm("移除此筆紀錄？")) {
+            expenses.splice(index, 1);
+            updateUI();
+        }
+    }
 
-        participants.forEach(p => {
+    // 修正：重新加入填色提示與匯率計算邏輯
+    function calculateSummary() {
+        if (expenses.length === 0) return alert("目前沒有支出資料");
+        const rate = parseFloat(document.getElementById('rate').value) || 0.052;
+        let total = 0;
+        let payerTotals = { "Ying": 0, "Kai": 0 };
+        expenses.forEach(ex => {
+            total += parseFloat(ex.amount);
+            payerTotals[ex.payer] += parseFloat(ex.amount);
+        });
+        const avg = total / 2;
+        const getDualText = (jpy) => {
+            const hkd = (jpy * rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            return `¥${jpy.toLocaleString()}<span class="dual-currency">($${hkd} HKD)</span>`;
+        };
+
+        let res = `<div style="font-size: 1.1em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">`;
+        res += `<strong>旅程總支出：${getDualText(total)}</strong><br>`;
+        res += `<strong>平均每人：${getDualText(avg)}</strong></div>`;
+
+        for (let p in payerTotals) {
             const diff = payerTotals[p] - avg;
-            if (diff > 0) {
-                resultHTML += `<p>${p}: 已付 ${payerTotals[p]}, 應**收回** <span style="color:green">${diff.toFixed(2)}</span> JPY</p>`;
-            } else {
-                resultHTML += `<p>${p}: 已付 ${payerTotals[p]}, 應**補回** <span style="color:red">${Math.abs(diff).toFixed(2)}</span> JPY</p>`;
-            }
-        });
-
-        document.getElementById('result').innerHTML = resultHTML;
+            const isReceiver = diff >= 0;
+            const bgColor = isReceiver ? "#eafff2" : "#fff2f2"; 
+            const borderColor = isReceiver ? "#b7ebc1" : "#ffa39e";
+            const statusLabel = isReceiver ? 
+                `<span class='receive'>💰 應收回 ${getDualText(diff)}</span>` : 
+                `<span class='pay'>💸 應補回 ${getDualText(Math.abs(diff))}</span>`;
+            
+            res += `<div class="result-card" style="background: ${bgColor}; border-color: ${borderColor}; border-style: solid; border-width: 1px;">
+                        <strong>${p}</strong> 已付 ${getDualText(payerTotals[p])}<br> 
+                        ${statusLabel}
+                    </div>`;
+        }
+        document.getElementById('result').innerHTML = res;
     }
 </script>
-
 </body>
 </html>
