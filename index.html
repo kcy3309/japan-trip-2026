@@ -21,6 +21,23 @@
         .receive { color: #27ae60; font-weight: bold; }
         .pay { color: #e74c3c; font-weight: bold; }
         .loading { text-align: center; color: #7f8c8d; font-size: 14px; }
+/* 貨幣轉換工具的樣式 */
+        .currency-box { 
+            margin-top: 10px; 
+            padding: 10px; 
+            background: #e8f4fd; 
+            border: 1px solid #bbdefb; 
+            border-radius: 8px; 
+            font-size: 14px; 
+        }
+        .currency-input { 
+            width: 70px; 
+            display: inline-block; 
+            padding: 5px; 
+            margin: 0 5px; 
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -69,8 +86,14 @@
     <div class="summary-box">
         <button style="background:#34495e; color:white;" onclick="calculateSummary()">💰 旅程結算</button>
         <div id="result" style="margin-top:15px;"></div>
+
+        <!-- 補上這一段 HTML -->
+        <div id="currencyTool" class="currency-box" style="display:none;">
+            匯率：1 JPY = <input type="number" id="rate" class="currency-input" value="0.052" step="0.001"> HKD/CNY
+            <button style="width:auto; padding:5px 10px; background:#2980b9; color:white;" onclick="applyCurrency()">轉換金額</button>
+            <div id="convertedResult" style="margin-top:10px; font-weight:bold; color:#2c3e50;"></div>
+        </div>
     </div>
-</div>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn5ZV2GXBOlTgIPm8Z0tXaSTGGL_Fop6J6T5oEAGjRgxYAmtzWvRrl9Qp1Jor--rLN/exec";
@@ -163,6 +186,25 @@
         }
         document.getElementById('result').innerHTML = res;
     }
+function applyCurrency() {
+        const rate = parseFloat(document.getElementById('rate').value);
+        let total = 0;
+        expenses.forEach(ex => total += parseFloat(ex.amount));
+        
+        const convertedTotal = (total * rate).toFixed(2);
+        const avg = (convertedTotal / 2).toFixed(2);
+        
+        document.getElementById('convertedResult').innerHTML = 
+            `約合外幣總計：$${parseFloat(convertedTotal).toLocaleString()}<br>` +
+            `每人約付：$${parseFloat(avg).toLocaleString()}`;
+    }
+
+    // 修改原本的 calculateSummary 函數，讓匯率工具在按「結算」後出現
+    const originalCalculateSummary = calculateSummary;
+    calculateSummary = function() {
+        originalCalculateSummary();
+        document.getElementById('currencyTool').style.display = 'block';
+    };
 </script>
 
 </body>
