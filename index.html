@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ying & Kai 日本之旅記帳</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #d35400; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-add { background-color: #e67e22; color: white; }
+        .btn-refresh { background-color: #3498db; color: white; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background-color: #fdf2e9; color: #d35400; }
+        .summary-box { margin-top: 25px; padding: 15px; background: #fff9f4; border: 1px solid #ffe5d0; border-radius: 10px; }
+        .receive { color: #27ae60; font-weight: bold; }
+        .pay { color: #e74c3c; font-weight: bold; }
+        .loading { text-align: center; color: #7f8c8d; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🇯🇵 Ying & Kai 支出同步</h2>
+    
+    <button class="btn-refresh" onclick="fetchFromCloud()">🔄 從雲端同步資料</button>
+    <div id="status" class="loading"></div>
+
+    <div class="form-group">
+        <label>項目</label>
+        <input type="text" id="item" placeholder="例如: 燒肉">
+    </div>
+    <div class="form-group">
+        <label>金額 (JPY)</label>
+        <input type="number" id="amount" placeholder="0">
+    </div>
+    <div class="form-group">
+        <label>支出人</label>
+        <select id="payer">
+            <option value="Ying">Ying</option>
+            <option value="Kai">Kai</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="date">
+    </div>
+    <button class="btn-add" id="addBtn" onclick="addExpense()">➕ 加入並同步</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>項目</th>
+                <th>支出人</th>
+                <th>金額</th>
+                <th>刪</th>
+            </tr>
+        </thead>
+        <tbody id="expenseBody"></tbody>
+    </table>
+
+    <div class="summary-box">
+        <button style="background:#34495e; color:white;" onclick="calculateSummary()">💰 旅程結算</button>
+        <div id="result" style="margin-top:15px;"></div>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn5ZV2GXBOlTgIPm8Z0tXaSTGGL_Fop6J6T5oEAGjRgxYAmtzWvRrl9Qp1Jor--rLN/exec";
+    let expenses = [];
+    document.getElementById('date').valueAsDate = new Date();
+
+    // 頁面開啟時自動抓資料
+    window.onload = fetchFromCloud;
+
+    function fetchFromCloud() {
+        document.getElementById('status').innerText = "雲端同步中...";
+        fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                expenses = data;
+                updateTable();
+                document.getElementById('status').innerText = "✅ 同步完成";
+            })
+            .catch(err => {
+                document.getElementById('status').innerText = "❌ 無法讀取雲端資料";
+            });
+    }
+
+    function addExpense() {
+        const item = document.getElementById('item').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const payer = document.getElementById('payer').value;
+        const date = document.getElementById('date').value;
+
+        if (!item || isNaN(amount)) return alert("請輸入完整項目與金額");
+
+        document.getElementById('addBtn').innerText = "同步中...";
+        document.getElementById('addBtn').disabled = true;
+
+        const payload = { item, amount, payer, date };
+
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify(payload)
+        }).then(() => {
+            expenses.push(payload);
+            updateTable();
+            document.getElementById('item').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('addBtn').innerText = "➕ 加入並同步";
+            document.getElementById('addBtn').disabled = false;
+        });
+    }
+
+    function updateTable() {
+        const tbody = document.getElementById("expenseBody");
+        tbody.innerHTML = "";
+        expenses.forEach((ex, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${ex.item}</td>
+                <td>${ex.payer}</td>
+                <td>¥${parseFloat(ex.amount).toLocaleString()}</td>
+                <td><button onclick="deleteLocal(${i})" style="padding:2px 5px; background:red; color:white; width:auto; margin:0;">X</button></td>
+            </tr>`;
+        });
+    }
+
+    function deleteLocal(index) {
+        if(confirm("只會從手機畫面移除，雲端資料請去試算表手動刪除喔！")) {
+            expenses.splice(index, 1);
+            updateTable();
+        }
+    }
+
+    function calculateSummary() {
+        if (expenses.length === 0) return alert("沒有資料");
+        let total = 0;
+        let payerTotals = { "Ying": 0, "Kai": 0 };
+        expenses.forEach(ex => {
+            total += parseFloat(ex.amount);
+            payerTotals[ex.payer] += parseFloat(ex.amount);
+        });
+        const avg = total / 2;
+        let res = `<strong>總計：¥${total.toLocaleString()}</strong><br>每人應付：¥${avg.toLocaleString()}<hr>`;
+        for (let p in payerTotals) {
+            const diff = payerTotals[p] - avg;
+            res += `${p} 已付 ¥${payerTotals[p].toLocaleString()}<br> ➡️ ${diff >= 0 ? `<span class='receive'>收回 ¥${diff.toLocaleString()}</span>` : `<span class='pay'>補回 ¥${Math.abs(diff).toLocaleString()}</span>`}<br>`;
+        }
+        document.getElementById('result').innerHTML = res;
+    }
+</script>
+
+</body>
+</html>
