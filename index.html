@@ -35,18 +35,19 @@
 </head>
 <body>
 
-<div class="container">
-    <h2>🇯🇵 Ying & Kai 日本之旅</h2>
-    
-    <div class="summary-box" style="margin-top:0; margin-bottom:20px;">
-        <label>旅程總預算 (JPY)</label>
-        <input type="number" id="totalBudget" value="500000" onchange="updateBudgetBar()" style="padding:5px; height:30px; margin-bottom:5px;">
-        <div class="budget-container">
-            <div id="budgetBar" class="budget-bar"></div>
+<div class="form-group" style="display: flex; gap: 10px;">
+        <div style="flex: 2;">
+            <label>金額 (JPY)</label>
+            <input type="number" id="amount" placeholder="0">
         </div>
-        <div class="budget-text">
-            <span id="spentText">已花: ¥0</span>
-            <span id="percentText">0%</span>
+        <div style="flex: 1;">
+            <label>支出人</label>
+            <select id="payer">
+                <!-- 補回「請選擇」選項 -->
+                <option value="" disabled selected>-- 請選擇 --</option>
+                <option value="Ying">Ying</option>
+                <option value="Kai">Kai</option>
+            </select>
         </div>
     </div>
 
@@ -142,17 +143,30 @@
         const payer = document.getElementById('payer').value;
         const date = document.getElementById('date').value;
 
-        if (!item || isNaN(amount)) return alert("請填寫正確資料");
+        // 檢查是否選擇了支出人
+        if (!item || isNaN(amount) || !payer) {
+            alert("請填寫完整的項目、金額並選擇支出人");
+            return;
+        }
+
         document.getElementById('addBtn').disabled = true;
+        document.getElementById('addBtn').innerText = "同步中...";
+        
         const payload = { item, amount, payer, date };
 
         fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
         .then(() => {
             expenses.push(payload);
             updateUI();
+            
+            // 重置輸入框
             document.getElementById('item').value = '';
             document.getElementById('amount').value = '';
+            // 重置支出人選單回到「請選擇」
+            document.getElementById('payer').selectedIndex = 0; 
+            
             document.getElementById('addBtn').disabled = false;
+            document.getElementById('addBtn').innerText = "➕ 加入並同步";
         });
     }
 
