@@ -227,27 +227,32 @@ table thead th {
         }
 
         const btn = document.getElementById('addBtn');
+        const statusDiv = document.getElementById('status'); // 取得狀態欄位
         btn.disabled = true;
         btn.innerText = "同步中...";
 
         const payload = { item, amount, payer, date };
 
-        // 核心修正：使用 POST 並處理 CORS
         fetch(SCRIPT_URL, {
             method: "POST",
-            mode: "no-cors", // GAS POST 必須使用 no-cors 才能避開某些轉址錯誤
+            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         })
         .then(() => {
-            // 因為 no-cors 無法獲取回傳值，我們直接假設成功並更新 UI
             expenses.push(payload);
             updateUI();
+            
+            // 清空輸入框
             document.getElementById('item').value = '';
             document.getElementById('amount').value = '';
+            
             btn.disabled = false;
             btn.innerText = "➕ 加入並同步";
-            alert("✅ 指令已送出 (若雲端未更新請檢查試算表權限)");
+            
+            // 改為在狀態欄顯示簡短提示，不再彈窗
+            statusDiv.innerText = "✅ 資料已成功送出";
+            setTimeout(() => { statusDiv.innerText = ""; }, 3000); // 3秒後自動消失
         })
         .catch(err => {
             console.error(err);
