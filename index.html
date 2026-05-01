@@ -323,7 +323,8 @@ table thead th {
         }
     }
 
-    if (expenses.length === 0) return alert("目前沒有支出資料");
+    function calculateSummary() {
+        if (expenses.length === 0) return alert("目前沒有支出資料");
         const rate = parseFloat(document.getElementById('rate').value) || 0.052;
         let total = 0;
         
