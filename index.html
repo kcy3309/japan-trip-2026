@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ying & Kai 日本之旅記帳 PRO</title>
+    <title>Ying & Ki 日本之旅記帳 PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
@@ -13,7 +13,10 @@
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-add { background-color: #e67e22; color: white; }
+        .btn-add { 
+    background-color: #ffb7c5; /* 櫻花粉色 */
+    color: #d35400; /* 深橘色文字，保持易讀性 */
+}
         .btn-refresh { background-color: #3498db; color: white; margin-bottom: 10px; }
         .converter-box { background: #fff5e6; border: 2px dashed #ffcc80; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
         .converter-title { font-size: 14px; font-weight: bold; color: #e67e22; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
@@ -55,7 +58,7 @@ table thead th {
 <body>
 
 <div class="container">
-    <h2>🇯🇵 Ying & Kai 日本之旅</h2>
+    <h2>🌸 Ying & Ki 日本之旅 🌸</h2>
     
     <div class="summary-box" style="margin-top:0; margin-bottom:20px;">
         <label>旅程總預算 (JPY)</label>
@@ -116,7 +119,7 @@ table thead th {
             <select id="payer">
                 <option value="" disabled selected>-- 請選擇 --</option>
                 <option value="Ying">Ying</option>
-                <option value="Kai">Kai</option>
+                <option value="Ki">Ki</option>
             </select>
         </div>
     </div>
@@ -324,7 +327,7 @@ table thead th {
         if (expenses.length === 0) return alert("目前沒有支出資料");
         const rate = parseFloat(document.getElementById('rate').value) || 0.052;
         let total = 0;
-        let payerTotals = { "Ying": 0, "Kai": 0 };
+        let payerTotals = { "Ying": 0, "Ki": 0 };
         expenses.forEach(ex => {
             total += parseFloat(ex.amount);
             payerTotals[ex.payer] += parseFloat(ex.amount);
