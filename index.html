@@ -323,36 +323,55 @@ table thead th {
         }
     }
 
-    function calculateSummary() {
-        if (expenses.length === 0) return alert("目前沒有支出資料");
+    if (expenses.length === 0) return alert("目前沒有支出資料");
         const rate = parseFloat(document.getElementById('rate').value) || 0.052;
         let total = 0;
-        let payerTotals = { "Ying": 0, "Ki": 0 };
+        
+        // 自動建立付款人清單，不再手動寫死 Ying 或 Ki
+        let payerTotals = {};
+        
         expenses.forEach(ex => {
-            total += parseFloat(ex.amount);
-            payerTotals[ex.payer] += parseFloat(ex.amount);
+            const amt = parseFloat(ex.amount) || 0;
+            total += amt;
+            
+            // 如果這個付款人還沒在清單中，就初始化為 0
+            if (!payerTotals[ex.payer]) {
+                payerTotals[ex.payer] = 0;
+            }
+            payerTotals[ex.payer] += amt;
         });
-        const avg = total / 2;
+
+        // 這裡只計算你在 HTML 下拉選單中定義的那兩個人：Ying 和 Ki
+        // 這樣就能過濾掉雲端試算表中可能存在的舊名字（如 Kai）
+        const activePayers = ["Ying", "Ki"];
+        const avg = total / activePayers.length;
+
         const getDualText = (jpy) => {
             const hkd = (jpy * rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             return `¥${jpy.toLocaleString()}<span class="dual-currency">($${hkd} HKD)</span>`;
         };
+
         let res = `<div style="font-size: 1.1em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">`;
         res += `<strong>旅程總支出：${getDualText(total)}</strong><br>`;
         res += `<strong>平均每人：${getDualText(avg)}</strong></div>`;
-        for (let p in payerTotals) {
-            const diff = payerTotals[p] - avg;
+
+        // 只針對 Ying 和 Ki 進行顯示
+        activePayers.forEach(p => {
+            const paidAmt = payerTotals[p] || 0; // 如果沒付過錢就設為 0
+            const diff = paidAmt - avg;
             const isReceiver = diff >= 0;
             const bgColor = isReceiver ? "#eafff2" : "#fff2f2"; 
             const borderColor = isReceiver ? "#b7ebc1" : "#ffa39e";
             const statusLabel = isReceiver ? 
                 `<span class='receive'>💰 應收回 ${getDualText(diff)}</span>` : 
                 `<span class='pay'>💸 應補回 ${getDualText(Math.abs(diff))}</span>`;
+
             res += `<div class="result-card" style="background: ${bgColor}; border-color: ${borderColor}; border-style: solid; border-width: 1px;">
-                        <strong>${p}</strong> 已付 ${getDualText(payerTotals[p])}<br> 
+                        <strong>${p}</strong> 已付 ${getDualText(paidAmt)}<br> 
                         ${statusLabel}
                     </div>`;
-        }
+        });
+
         document.getElementById('result').innerHTML = res;
     }
 </script>
