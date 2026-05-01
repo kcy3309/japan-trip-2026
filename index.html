@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ying & Ki 日本之旅記帳 PRO</title>
+    <title>Ying & Kai 日本之旅記帳 PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
@@ -15,30 +15,48 @@
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-add { background-color: #e67e22; color: white; }
         .btn-refresh { background-color: #3498db; color: white; margin-bottom: 10px; }
-        
+        .converter-box { background: #fff5e6; border: 2px dashed #ffcc80; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .converter-title { font-size: 14px; font-weight: bold; color: #e67e22; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
         .budget-container { background: #eee; border-radius: 10px; height: 20px; width: 100%; margin: 10px 0; overflow: hidden; }
         .budget-bar { background: linear-gradient(90deg, #27ae60, #f1c40f, #e74c3c); height: 100%; width: 0%; transition: width 0.5s; }
         .budget-text { font-size: 13px; color: #666; display: flex; justify-content: space-between; }
-
         .chart-container { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 10px; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        .table-wrapper { max-height: 35vh; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; margin-top: 20px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background-color: #fdf2e9; color: #d35400; }
+        th { background-color: #fdf2e9; color: #d35400; position: sticky; top: 0; z-index: 5; }
         .summary-box { margin-top: 25px; padding: 15px; background: #fff9f4; border: 1px solid #ffe5d0; border-radius: 10px; }
         .result-card { margin-bottom: 12px; padding: 15px; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .dual-currency { color: #666; font-size: 0.85em; margin-left: 5px; }
         .receive { color: #27ae60; font-weight: bold; }
         .pay { color: #e74c3c; font-weight: bold; }
         .loading { text-align: center; color: #7f8c8d; font-size: 12px; }
+/* 這是存放表格的容器 */
+.table-container {
+    max-height: 300px; /* 設定固定高度，例如 300px (約手機畫面 1/3) */
+    overflow-y: auto;  /* 當內容超過高度時，自動顯示垂直捲動條 */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch; /* 讓手機端捲動更順暢 */
+}
+
+/* 確保表格標頭在捲動時固定在頂部 (選修，建議加上) */
+table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🇯🇵 Ying & Ki 日本之旅</h2>
+    <h2>🇯🇵 Ying & Kai 日本之旅</h2>
     
-    <!-- 預算進度條 -->
     <div class="summary-box" style="margin-top:0; margin-bottom:20px;">
         <label>旅程總預算 (JPY)</label>
         <input type="number" id="totalBudget" value="500000" onchange="updateBudgetBar()" style="padding:5px; height:30px; margin-bottom:5px;">
@@ -51,10 +69,24 @@
         </div>
     </div>
 
+    <div class="converter-box">
+        <div class="converter-title">💱 購物即時換算 (連動下方匯率)</div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="flex: 1;">
+                <label style="font-size: 12px;">日元 JPY</label>
+                <input type="number" id="calcJPY" placeholder="¥ 0" oninput="convertCurrency('JPY')">
+            </div>
+            <div style="padding-top: 20px;">⇄</div>
+            <div style="flex: 1;">
+                <label style="font-size: 12px;">港幣 HKD</label>
+                <input type="number" id="calcHKD" placeholder="$ 0" oninput="convertCurrency('HKD')">
+            </div>
+        </div>
+    </div>
+
     <button class="btn-refresh" onclick="fetchFromCloud()">🔄 從雲端同步資料</button>
     <div id="status" class="loading"></div>
 
-    <!-- 輸入區域 -->
     <div class="form-group">
         <label>項目</label>
         <input type="text" id="item" placeholder="例如: 燒肉、加油">
@@ -70,7 +102,7 @@
             <select id="payer">
                 <option value="" disabled selected>-- 請選擇 --</option>
                 <option value="Ying">Ying</option>
-                <option value="Ki">Ki</option>
+                <option value="Kai">Kai</option>
             </select>
         </div>
     </div>
@@ -82,55 +114,73 @@
     
     <button class="btn-add" id="addBtn" onclick="addExpense()">➕ 加入並同步</button>
 
-    <!-- 分類圖表 -->
     <div class="chart-container">
         <canvas id="expenseChart"></canvas>
     </div>
 
-    <!-- 支出清單 -->
+    <!-- 找到這一段並確保 class 名稱對應到你的 CSS -->
+<div class="table-wrapper">
     <table>
         <thead>
             <tr>
-                <th>日期</th>                
-                <th>項目</th>
-                <th>金額</th>
-                <th></th>
+                <th style="width: 20%;">日期</th>                
+                <th style="width: 50%;">項目</th>
+                <th style="width: 20%;">金額</th>
+                <th style="width: 10%;"></th>
             </tr>
         </thead>
         <tbody id="expenseBody"></tbody>
     </table>
+</div>
 
-    <!-- 結算區域 -->
     <div class="summary-box">
         <label>匯率設定 (1 JPY = ? HKD)</label>
-        <input type="number" id="rate" value="0.052" step="0.0001" style="width: 100px; padding: 5px; margin-bottom:10px;">
-        
+        <input type="number" id="rate" value="0.052" step="0.0001" oninput="convertCurrency('JPY')" style="width: 100px; padding: 5px; margin-bottom:10px;">
         <button style="background:#34495e; color:white;" onclick="calculateSummary()">💰 旅程結算</button>
-        
         <button style="background:#7f8c8d; color:white; margin-top: 15px; font-size: 14px;" 
                 onclick="window.open('https://docs.google.com/spreadsheets/d/1GFoYmkElFjOWEGneIwG-E5f9kYWpkWdd1cNAZv69WlI/edit?usp=sharing', '_blank')">
             ✏️ 日本之旅共同支出紀錄 (直接修改)
         </button>
-
         <div id="result" style="margin-top:15px; line-height: 1.6;"></div>
     </div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn5ZV2GXBOlTgIPm8Z0tXaSTGGL_Fop6J6T5oEAGjRgxYAmtzWvRrl9Qp1Jor--rLN/exec";
+    // 請確認此 URL 是否為最新部署的 Web App URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuQPEkAYafqKba7ef7wgG-4WbFx9oQD9y8y0Gt9BgASSAQH8tfgLNqS2pdik1svRDU/exec";
     let expenses = [];
     let myChart = null;
     document.getElementById('date').valueAsDate = new Date();
 
     window.onload = fetchFromCloud;
 
-    function getCategory(item) {
-        if (item.includes("油") || item.includes("車") || item.includes("ETC") || item.includes("路") || item.includes("泊") || item.includes("Gas")) return { name: "交通自駕", icon: "🚗" };
-        if (item.includes("食") || item.includes("餐") || item.includes("飲") || item.includes("麵") || item.includes("肉") || item.includes("蟹")) return { name: "飲食美饌", icon: "🍱" };
-        if (item.includes("買") || item.includes("物") || item.includes("藥妝") || item.includes("名產")) return { name: "購物消費", icon: "🛍️" };
-        if (item.includes("住") || item.includes("酒店") || item.includes("宿")) return { name: "住宿酒店", icon: "🏨" };
-        return { name: "其他雜項", icon: "💰" };
+    function convertCurrency(source) {
+        const rate = parseFloat(document.getElementById('rate').value) || 0;
+        const jpyInput = document.getElementById('calcJPY');
+        const hkdInput = document.getElementById('calcHKD');
+        if (rate === 0) return;
+        if (source === 'JPY') {
+            const jpyVal = parseFloat(jpyInput.value);
+            hkdInput.value = isNaN(jpyVal) ? "" : (jpyVal * rate).toFixed(2);
+        } else {
+            const hkdVal = parseFloat(hkdInput.value);
+            jpyInput.value = isNaN(hkdVal) ? "" : (hkdVal / rate).toFixed(0);
+        }
     }
+
+   function getCategory(item) {
+    // 強化防錯：確保 item 是字串，如果為空則給予預設值
+    const itemName = String(item || "").trim();
+    
+    if (!itemName) return { name: "其他雜項", icon: "💰" };
+    
+    if (itemName.includes("油") || itemName.includes("車") || itemName.includes("ETC") || itemName.includes("路") || itemName.includes("泊") || itemName.includes("Gas")) return { name: "交通自駕", icon: "🚗" };
+    if (itemName.includes("食") || itemName.includes("餐") || itemName.includes("飲") || itemName.includes("麵") || itemName.includes("肉") || itemName.includes("蟹")) return { name: "飲食美饌", icon: "🍱" };
+    if (itemName.includes("買") || itemName.includes("物") || itemName.includes("藥妝") || itemName.includes("名產")) return { name: "購物消費", icon: "🛍️" };
+    if (itemName.includes("住") || itemName.includes("酒店") || itemName.includes("宿")) return { name: "住宿酒店", icon: "🏨" };
+    
+    return { name: "其他雜項", icon: "💰" };
+}
 
     function fetchFromCloud() {
         document.getElementById('status').innerText = "雲端同步中...";
@@ -141,11 +191,14 @@
                 updateUI();
                 document.getElementById('status').innerText = "✅ 同步完成";
             })
-            .catch(err => { document.getElementById('status').innerText = "❌ 同步失敗"; });
+            .catch(err => { 
+                console.error(err);
+                document.getElementById('status').innerText = "❌ 同步失敗，請檢查 Script 權限"; 
+            });
     }
 
     function addExpense() {
-        const item = document.getElementById('item').value;
+        const item = document.getElementById('item').value.trim();
         const amount = parseFloat(document.getElementById('amount').value);
         const payer = document.getElementById('payer').value;
         const date = document.getElementById('date').value;
@@ -155,20 +208,34 @@
             return;
         }
 
-        document.getElementById('addBtn').disabled = true;
-        document.getElementById('addBtn').innerText = "同步中...";
-        
+        const btn = document.getElementById('addBtn');
+        btn.disabled = true;
+        btn.innerText = "同步中...";
+
         const payload = { item, amount, payer, date };
 
-        fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+        // 核心修正：使用 POST 並處理 CORS
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", // GAS POST 必須使用 no-cors 才能避開某些轉址錯誤
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        })
         .then(() => {
+            // 因為 no-cors 無法獲取回傳值，我們直接假設成功並更新 UI
             expenses.push(payload);
             updateUI();
             document.getElementById('item').value = '';
             document.getElementById('amount').value = '';
-            document.getElementById('payer').selectedIndex = 0; 
-            document.getElementById('addBtn').disabled = false;
-            document.getElementById('addBtn').innerText = "➕ 加入並同步";
+            btn.disabled = false;
+            btn.innerText = "➕ 加入並同步";
+            alert("✅ 指令已送出 (若雲端未更新請檢查試算表權限)");
+        })
+        .catch(err => {
+            console.error(err);
+            alert("❌ 網路錯誤");
+            btn.disabled = false;
+            btn.innerText = "➕ 加入並同步";
         });
     }
 
@@ -181,14 +248,19 @@
     function updateTable() {
         const tbody = document.getElementById("expenseBody");
         tbody.innerHTML = "";
-        expenses.forEach((ex, i) => {
+        const reversedExpenses = [...expenses].reverse();
+        reversedExpenses.forEach((ex, i) => {
+            const originalIndex = expenses.length - 1 - i;
             const cat = getCategory(ex.item);
-            const displayDate = ex.date ? ex.date.substring(5, 10) : "";
+            const displayDate = ex.date ? (typeof ex.date === 'string' ? ex.date.substring(5, 10) : "") : "";
             tbody.innerHTML += `<tr>
                 <td>${displayDate}</td>
-                <td>${cat.icon} ${ex.item}<br><small style="color:gray">${ex.payer}</small></td>
+                <td>
+                    ${cat.icon} <strong>${ex.item}</strong><br>
+                    <span style="color: #e67e22; font-size: 11px; font-weight: bold;">👤 ${ex.payer}</span>
+                </td>
                 <td>¥${parseFloat(ex.amount).toLocaleString()}</td>
-                <td><button onclick="deleteLocal(${i})" style="padding:2px 5px; background:#ff4d4f; color:white; border-radius:4px; font-size:10px; border:none;">X</button></td>
+                <td><button onclick="deleteLocal(${originalIndex})" style="padding:2px 5px; background:#ff4d4f; color:white; border-radius:4px; font-size:10px; border:none;">X</button></td>
             </tr>`;
         });
     }
@@ -204,7 +276,9 @@
     }
 
     function updateChart() {
-        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const canvas = document.getElementById('expenseChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         const categories = {};
         expenses.forEach(ex => {
             const catName = getCategory(ex.item).name;
@@ -225,7 +299,7 @@
     }
 
     function deleteLocal(index) {
-        if(confirm("移除此筆紀錄？")) {
+        if(confirm("移除此筆紀錄？(僅限本地移除，雲端請至試算表刪除)")) {
             expenses.splice(index, 1);
             updateUI();
         }
@@ -235,7 +309,7 @@
         if (expenses.length === 0) return alert("目前沒有支出資料");
         const rate = parseFloat(document.getElementById('rate').value) || 0.052;
         let total = 0;
-        let payerTotals = { "Ying": 0, "Ki": 0 };
+        let payerTotals = { "Ying": 0, "Kai": 0 };
         expenses.forEach(ex => {
             total += parseFloat(ex.amount);
             payerTotals[ex.payer] += parseFloat(ex.amount);
@@ -245,11 +319,9 @@
             const hkd = (jpy * rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             return `¥${jpy.toLocaleString()}<span class="dual-currency">($${hkd} HKD)</span>`;
         };
-
         let res = `<div style="font-size: 1.1em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">`;
         res += `<strong>旅程總支出：${getDualText(total)}</strong><br>`;
         res += `<strong>平均每人：${getDualText(avg)}</strong></div>`;
-
         for (let p in payerTotals) {
             const diff = payerTotals[p] - avg;
             const isReceiver = diff >= 0;
@@ -258,7 +330,6 @@
             const statusLabel = isReceiver ? 
                 `<span class='receive'>💰 應收回 ${getDualText(diff)}</span>` : 
                 `<span class='pay'>💸 應補回 ${getDualText(Math.abs(diff))}</span>`;
-            
             res += `<div class="result-card" style="background: ${bgColor}; border-color: ${borderColor}; border-style: solid; border-width: 1px;">
                         <strong>${p}</strong> 已付 ${getDualText(payerTotals[p])}<br> 
                         ${statusLabel}
